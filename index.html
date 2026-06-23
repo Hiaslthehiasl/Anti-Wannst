@@ -1,0 +1,1110 @@
+<!-- deploy: hiaslthehiasl/Anti-Wannst -->
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Anti-Wannst">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#2D6A4F">
+<title>Anti-Wannst</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F7F6F2;
+    --surface: #FFFFFF;
+    --ink: #1A1A1A;
+    --ink-light: #6B6B6B;
+    --accent: #2D6A4F;
+    --accent-light: #E8F4EE;
+    --border: #E2E0D8;
+    --done: #2D6A4F;
+    --undone: #E2E0D8;
+    --warn: #C85C2B;
+    --bier: #B8860B;
+    --bier-light: #FFFBF0;
+    --doner: #8B4513;
+  }
+
+  body {
+    background: var(--bg);
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 15px;
+    color: var(--ink);
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 20px 16px 80px;
+  }
+
+  header {
+    padding: 28px 0 20px;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+
+  header h1 {
+    font-family: Georgia, serif;
+    font-size: 24px;
+    font-weight: normal;
+  }
+
+  header .date-info {
+    font-size: 12px;
+    color: var(--ink-light);
+    text-align: right;
+  }
+
+  /* Day tabs */
+  .day-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 20px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .day-tab {
+    flex-shrink: 0;
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 13px;
+    cursor: pointer;
+    background: var(--surface);
+    position: relative;
+    transition: all 0.15s;
+  }
+
+  .day-tab.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+
+  .day-tab .score-dot {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--ink-light);
+    color: white;
+    font-size: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+  }
+
+  .day-tab .score-dot.high { background: var(--accent); }
+  .day-tab .score-dot.mid { background: var(--bier); }
+  .day-tab .score-dot.low { background: var(--warn); }
+
+  .day-view { display: none; }
+  .day-view.active { display: block; }
+
+  /* Score banner */
+  .score-banner {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .score-circle {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: 3px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: border-color 0.3s;
+  }
+
+  .score-circle .num {
+    font-family: Georgia, serif;
+    font-size: 20px;
+    font-weight: bold;
+    line-height: 1;
+  }
+
+  .score-circle .max {
+    font-size: 10px;
+    color: var(--ink-light);
+  }
+
+  .score-text .label {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+
+  .score-text .sub {
+    font-size: 12px;
+    color: var(--ink-light);
+  }
+
+  /* Section */
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+
+  .section-header {
+    padding: 12px 16px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--ink-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .section-header .section-score {
+    font-size: 12px;
+    color: var(--ink);
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  /* Habit rows */
+  .habit-row {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    gap: 14px;
+    transition: background 0.1s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .habit-row:last-child { border-bottom: none; }
+  .habit-row:active { background: var(--bg); }
+
+  .check {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 2px solid var(--undone);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    font-size: 13px;
+    color: transparent;
+  }
+
+  .habit-row.done .check {
+    background: var(--done);
+    border-color: var(--done);
+    color: white;
+  }
+
+  .habit-text { flex: 1; font-size: 14px; }
+  .habit-text .sub { font-size: 12px; color: var(--ink-light); }
+
+  .habit-pts {
+    font-size: 11px;
+    color: var(--ink-light);
+    background: var(--bg);
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+
+  /* Meal rows */
+  .meal-row {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.1s;
+    -webkit-tap-highlight-color: transparent;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+
+  .meal-row:last-child { border-bottom: none; }
+  .meal-row:active { background: var(--bg); }
+
+  .meal-check {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    border: 2px solid var(--undone);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    font-size: 13px;
+    color: transparent;
+    margin-top: 2px;
+  }
+
+  .meal-row.done .meal-check {
+    background: var(--done);
+    border-color: var(--done);
+    color: white;
+  }
+
+  .meal-content { flex: 1; }
+  .meal-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    color: var(--ink-light);
+    margin-bottom: 2px;
+  }
+
+  .meal-main { font-size: 14px; font-weight: 500; }
+  .meal-detail { font-size: 12px; color: var(--ink-light); margin-top: 2px; }
+  .meal-wuerze {
+    display: inline-block;
+    margin-top: 4px;
+    font-size: 11px;
+    background: var(--accent-light);
+    color: var(--accent);
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+
+  .meal-pts {
+    font-size: 11px;
+    color: var(--ink-light);
+    background: var(--bg);
+    padding: 2px 8px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  /* Week overview */
+  .week-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+
+  .week-bar h3 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--ink-light);
+    margin-bottom: 12px;
+  }
+
+  .week-bars {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+    height: 60px;
+  }
+
+  .week-bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+
+  .bar-fill {
+    width: 100%;
+    border-radius: 4px 4px 0 0;
+    background: var(--border);
+    transition: height 0.3s, background 0.3s;
+    min-height: 4px;
+  }
+
+  .bar-label { font-size: 11px; color: var(--ink-light); }
+  .bar-score { font-size: 11px; font-weight: 600; }
+
+  /* Reset button */
+  .reset-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    color: var(--ink-light);
+    cursor: pointer;
+    margin-top: 8px;
+  }
+
+  .reset-btn:active { background: var(--bg); }
+
+  .week-nav {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    font-size: 13px;
+  }
+
+  .week-nav button {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+
+  .week-nav span { flex: 1; text-align: center; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1 id="pageTitle">Tagesplan</h1>
+  <div class="date-info" id="dateInfo"></div>
+</header>
+
+<!-- Main nav -->
+<div style="display:flex; gap:8px; margin-bottom:20px;">
+  <button id="navTracker" onclick="showView('tracker')" style="flex:1; padding:10px; border-radius:8px; border:2px solid var(--accent); background:var(--accent); color:white; font-size:14px; cursor:pointer;">📋 Tracker</button>
+  <button id="navAnalyse" onclick="showView('analyse')" style="flex:1; padding:10px; border-radius:8px; border:2px solid var(--border); background:var(--surface); color:var(--ink); font-size:14px; cursor:pointer;">📊 Analyse</button>
+</div>
+
+<!-- TRACKER VIEW -->
+<div id="trackerView">
+<div class="week-nav">
+  <button onclick="prevWeek()">← W1</button>
+  <span id="weekLabel">Woche 1</span>
+  <button onclick="nextWeek()">W2 →</button>
+</div>
+
+<div class="week-bar" id="weekOverview">
+  <h3>Woche im Überblick</h3>
+  <div class="week-bars" id="weekBars"></div>
+</div>
+
+<div class="day-tabs" id="dayTabs"></div>
+<div id="dayViews"></div>
+</div>
+
+<!-- ANALYSE VIEW -->
+<div id="analyseView" style="display:none;">
+  <div id="analyseContent"></div>
+</div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+
+// Weights per habit per goal (0–1, each goal sums to 1.0)
+// Goals: A = Abnehmen (40%), K = Kraft/Ausdauer (30%), P = Produktivität (30%)
+// Gesamtscore = 0.4*A + 0.3*K + 0.3*P, normalized to 0–100
+
+const HABITS = [
+  // id, label, sub, weights: {a, k, p}
+  { id: 'kein_alk',   label: 'Kein Alkohol',       sub: '',                                          w: { a: 0.20, k: 0.10, p: 0.10 } },
+  { id: 'kein_snack', label: 'Keine Snacks',        sub: 'Kein Naschen zwischendurch',               w: { a: 0.15, k: 0.05, p: 0.05 } },
+  { id: 'bett',       label: 'Vor 23:30 im Bett',  sub: '',                                          w: { a: 0.10, k: 0.25, p: 0.30 } },
+  { id: 'sport',      label: 'Sporteinheit',        sub: 'Fußball, Körpergewicht oder Wandern',      w: { a: 0.05, k: 0.25, p: 0.10 } },
+  { id: 'uebungen',   label: 'Übungen gemacht',     sub: '25 Liegestütze · 25 Armzug · 5 Klimmzüge',w: { a: 0.05, k: 0.20, p: 0.05 } },
+  { id: 'kuhsee',     label: 'Kuhseerunde 4km',     sub: 'Nüchtern morgens',                         w: { a: 0.05, k: 0.10, p: 0.10 } },
+  { id: 'schritte',   label: '15.000 Schritte',     sub: '',                                          w: { a: 0.05, k: 0.05, p: 0.05 } },
+  { id: 'aufstehen',  label: 'Aufstehen um 6:30',   sub: '',                                          w: { a: 0.00, k: 0.00, p: 0.15 } },
+  { id: 'arbeit',     label: 'Arbeiten um 8:30',    sub: '',                                          w: { a: 0.00, k: 0.00, p: 0.10 } },
+];
+// Meals collectively account for remaining weight per goal:
+// A: 35%, K: 0%, P: 0% → each meal = 35/3 ≈ 11.67% of A
+// Note: meals are tracked separately and contribute only to Abnehmen score
+const MEAL_WEIGHT_A = 0.35 / 3; // per meal, toward Abnehmen only
+
+const DOENER = { main: 'Döner im Fladenbrot', detail: 'Hähnchen oder Lamm, Salat, Tomaten, Zwiebeln, Joghurtsoße', wuerze: 'Zitrone drüber' };
+
+const WEEKS = {
+  1: {
+    Mo: {
+      meals: [
+        { id: 'fr', label: 'Frühstück', main: '330g griechischer Joghurt + 60g Haferflocken', detail: '1 EL Kerne, Handvoll Beeren, 1 Löffel Proteinpulver' },
+        { id: 'mi', label: 'Mittag', main: 'Döner im Fladenbrot', detail: 'Hähnchen, Salat, Tomaten, Zwiebeln, Joghurtsoße', wuerze: 'Frisch gepresste Zitrone drüber', alt: null },
+        { id: 'ab', label: 'Abend', main: 'Brotzeit', detail: '2 Scheiben Vollkornbrot, 2 Scheiben Putenbrust, 1 Scheibe Bergkäse, Kohlrabi, Gurke' },
+      ]
+    },
+    Di: {
+      meals: [
+        { id: 'fr', label: 'Frühstück', main: '330g griechischer Joghurt + 60g Haferflocken', detail: '1 EL Kerne, Handvoll Beeren, 1 Löffel Proteinpulver' },
+        { id: 'mi', label: 'Mittag', main: '300g Hühnchenbrust + Paprika + Zucchini', detail: '150g Reis', wuerze: 'Sojasoße + Ingwer + Knoblauch', alt: DOENER },
+        { id: 'ab', label: 'Abend', main: 'Großer Salat', detail: 'Rucola, Tomaten, 2 Eier, 1 Dose Thunfisch (150g), Oliven, Olivenöl + Zitrone' },
+      ]
+    },
+    Mi: {
+      meals: [
+        { id: 'fr', label: 'Frühstück', main: '330g griechischer Joghurt + 60g Haferflocken', detail: '1 EL Kerne, Handvoll Beeren, 1 Löffel Proteinpulver' },
+        { id: 'mi', label: 'Mittag', main: '250g Rinderhack (mager) + Brokkoli + Karotten', detail: '200g Kartoffeln', wuerze: 'Tomatensoße + Knoblauch + Oregano', alt: DOENER },
+        { id: 'ab', label: 'Abend', main: 'Brotzeit', detail: '2 Scheiben Roggenbrot, Hüttenkäse (150g), Radieschen, Kohlrabi, Paprika' },
+      ]
+    },
+    Do: {
+      meals: [
+        { id: 'fr', label: 'Frühstück', main: '330g griechischer Joghurt + 60g Haferflocken', detail: '1 EL Kerne, Handvoll Beeren, 1 Löffel Proteinpulver' },
+        { id: 'mi', label: 'Mittag', main: 'Döner im Fladenbrot', detail: 'Lamm oder Hähnchen, Salat, Tomaten, Zwiebeln, Joghurtsoße', wuerze: 'Mit allem, Zitrone drüber', alt: null },
+        { id: 'ab', label: 'Abend', main: 'Großer Salat', detail: 'Eisberg, Gurke, Paprika, 200g Rinderhack (mager), Tomaten, Balsamico + Olivenöl' },
+      ]
+    },
+    Fr: {
+      meals: [
+        { id: 'fr', label: 'Frühstück', main: '330g griechischer Joghurt + 60g Haferflocken', detail: '1 EL Kerne, Handvoll Beeren, 1 Löffel Proteinpulver' },
+        { id: 'mi', label: 'Mittag', main: 'Kein Mittagessen / Döner', detail: 'Optional — kein Mittag gibt Puffer fürs Bier', alt: DOENER },
+        { id: 'ab', label: 'Abend', main: 'Brotzeit + Bier', detail: '3 Scheiben Vollkornbrot, Wurst, Käse, Gemüse + 2l Bier' },
+      ]
+    },
+  },
+  2: {
+    Mo: {
+      meals: [
+        { id: 'fr', label: 'Frühstück', main: '330g griechischer Joghurt + 60g Haferflocken', detail: '1 EL Kerne, Handvoll Beeren, 1 Löffel Proteinpulver' },
+        { id: 'mi', label: 'Mittag', main: 'Döner im Fladenbrot', detail: 'Hähnchen, Salat, Tomaten, Zwiebeln, Joghurtsoße', wuerze: 'Mit allem, scharf', alt: null },
+        { id: 'ab', label: 'Abend', main: 'Großer Salat', detail: 'Rucola, Kirschtomaten, 1 Dose Thunfisch (150g), 2 Eier, Oliven, Olivenöl + Zitrone' },
+      ]
+    },
+    Di: {
+      meals: [
+        { id: 'fr', label: 'Frühstück', main: '330g griechischer Joghurt + 60g Haferflocken', detail: '1 EL Kerne, Handvoll Beeren, 1 Löffel Proteinpulver' },
+        { id: 'mi', label: 'Mittag', main: '300g Putengeschnetzeltes + Blumenkohl + Paprika', detail: '200g Kartoffeln', wuerze: 'Senf + Honig (1 TL) + Rosmarin', alt: DOENER },
+        { id: 'ab', label: 'Abend', main: 'Brotzeit', detail: '2 Scheiben Vollkornbrot, Putenbrust, Gouda, Kohlrabi, Paprika, Gurke' },
+      ]
+    },
+    Mi: {
+      meals: [
+        { id: 'fr', label: 'Frühstück', main: '330g griechischer Joghurt + 60g Haferflocken', detail: '1 EL Kerne, Handvoll Beeren, 1 Löffel Proteinpulver' },
+        { id: 'mi', label: 'Mittag', main: '300g Putengeschnetzeltes + Pak Choi + Paprika', detail: '150g Reis', wuerze: 'Sojasoße + Sesamöl + Ingwer', alt: DOENER },
+        { id: 'ab', label: 'Abend', main: 'Großer Salat', detail: 'Eisberg, Gurke, Radieschen, 200g Hüttenkäse, Sonnenblumenkerne, Essig + Öl' },
+      ]
+    },
+    Do: {
+      meals: [
+        { id: 'fr', label: 'Frühstück', main: '330g griechischer Joghurt + 60g Haferflocken', detail: '1 EL Kerne, Handvoll Beeren, 1 Löffel Proteinpulver' },
+        { id: 'mi', label: 'Mittag', main: 'Döner im Fladenbrot', detail: 'Lamm oder Hähnchen, Salat, Tomaten, Zwiebeln, Joghurtsoße', wuerze: 'Scharf + extra Zwiebeln', alt: null },
+        { id: 'ab', label: 'Abend', main: 'Brotzeit', detail: '2 Scheiben Roggenbrot, Magerquark (150g) mit Schnittlauch, 1 Scheibe Schinken, Tomate, Kohlrabi' },
+      ]
+    },
+    Fr: {
+      meals: [
+        { id: 'fr', label: 'Frühstück', main: '330g griechischer Joghurt + 60g Haferflocken', detail: '1 EL Kerne, Handvoll Beeren, 1 Löffel Proteinpulver' },
+        { id: 'mi', label: 'Mittag', main: 'Kein Mittagessen / Döner', detail: 'Optional — kein Mittag gibt Puffer für Pizza + Bier', alt: DOENER },
+        { id: 'ab', label: 'Abend', main: 'Pizza + Bier', detail: '½ Pizza + 2l Bier' },
+      ]
+    },
+  }
+};
+
+const DAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr'];
+const DAY_FULL = { Mo: 'Montag', Di: 'Dienstag', Mi: 'Mittwoch', Do: 'Donnerstag', Fr: 'Freitag' };
+const GOAL_WEIGHTS = { a: 0.40, k: 0.30, p: 0.30 };
+const TARGET_WEIGHT = 85.0;
+
+// ─── STATE ──────────────────────────────────────────────────────────────────
+
+let currentWeek = 1;
+let currentDay = DAYS[0];
+let state = loadState();
+
+function loadState() {
+  try {
+    const s = localStorage.getItem('tracker_v1');
+    return s ? JSON.parse(s) : {};
+  } catch { return {}; }
+}
+
+function saveState() {
+  try { localStorage.setItem('tracker_v1', JSON.stringify(state)); } catch {}
+}
+
+function getKey(week, day, id) { return `w${week}_${day}_${id}`; }
+
+function isChecked(week, day, id) { return !!state[getKey(week, day, id)]; }
+
+function toggle(week, day, id) {
+  const k = getKey(week, day, id);
+  state[k] = !state[k];
+  saveState();
+  render();
+}
+
+// Compute weighted index 0–100 for a day
+function getDayIndex(week, day) {
+  // Sub-scores per goal (0.0–1.0)
+  let a = 0, k = 0, p = 0;
+
+  HABITS.forEach(h => {
+    if (isChecked(week, day, h.id)) {
+      a += h.w.a;
+      k += h.w.k;
+      p += h.w.p;
+    }
+  });
+
+  // Meals contribute only to Abnehmen — either main or alt counts
+  WEEKS[week][day].meals.forEach(m => {
+    const mainDone = isChecked(week, day, 'meal_' + m.id);
+    const altDone = isChecked(week, day, 'meal_alt_' + m.id);
+    if (mainDone || altDone) {
+      a += MEAL_WEIGHT_A;
+    }
+  });
+
+  // Cap at 1.0 per goal
+  a = Math.min(1, a);
+  k = Math.min(1, k);
+  p = Math.min(1, p);
+
+  const total = GOAL_WEIGHTS.a * a + GOAL_WEIGHTS.k * k + GOAL_WEIGHTS.p * p;
+  return {
+    total: Math.round(total * 100),
+    a: Math.round(a * 100),
+    k: Math.round(k * 100),
+    p: Math.round(p * 100),
+  };
+}
+
+function scoreClass(idx) {
+  if (idx >= 80) return 'high';
+  if (idx >= 50) return 'mid';
+  return 'low';
+}
+
+function scoreLabel(idx) {
+  if (idx >= 80) return '💪 Starker Tag';
+  if (idx >= 60) return '👍 Solider Tag';
+  if (idx >= 40) return '🌤 Ausbaufähig';
+  return '🌱 Fang an';
+}
+
+// Weight tracking
+function saveWeight(kg) {
+  const key = 'weight_' + new Date().toISOString().slice(0,10);
+  state[key] = kg;
+  saveState();
+}
+
+function getWeightHistory() {
+  return Object.entries(state)
+    .filter(([k]) => k.startsWith('weight_'))
+    .map(([k, v]) => ({ date: k.replace('weight_', ''), kg: v }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+// ─── RENDER ─────────────────────────────────────────────────────────────────
+
+function render() {
+  renderDateInfo();
+  renderTabs();
+  renderDayViews();
+  renderWeekOverview();
+}
+
+function renderDateInfo() {
+  const now = new Date();
+  document.getElementById('dateInfo').innerHTML =
+    now.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' }) +
+    '<br>Woche ' + currentWeek;
+}
+
+function renderTabs() {
+  const el = document.getElementById('dayTabs');
+  el.innerHTML = DAYS.map(day => {
+    const idx = getDayIndex(currentWeek, day);
+    const cls = scoreClass(idx.total);
+    const active = day === currentDay ? ' active' : '';
+    return `<div class="day-tab${active}" onclick="selectDay('${day}')">
+      ${DAY_FULL[day]}
+      <span class="score-dot ${cls}">${idx.total}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderDayViews() {
+  const el = document.getElementById('dayViews');
+  el.innerHTML = DAYS.map(day => {
+    const active = day === currentDay ? ' active' : '';
+    const idx = getDayIndex(currentWeek, day);
+    const cls = scoreClass(idx.total);
+    const label = scoreLabel(idx.total);
+    const circleColor = cls === 'high' ? 'var(--accent)' : cls === 'mid' ? 'var(--bier)' : 'var(--warn)';
+    const isWiegeTag = day === 'Mi';
+    const todayKey = 'weight_' + new Date().toISOString().slice(0,10);
+    const savedKg = state[todayKey] || '';
+
+    const habitsHtml = HABITS.map(h => {
+      const done = isChecked(currentWeek, day, h.id);
+      const topW = Math.max(h.w.a, h.w.k, h.w.p);
+      const topGoal = topW === h.w.a ? 'Abnehmen' : topW === h.w.k ? 'Kraft' : 'Produktivität';
+      return `<div class="habit-row${done ? ' done' : ''}" onclick="toggle(${currentWeek}, '${day}', '${h.id}')">
+        <div class="check">✓</div>
+        <div class="habit-text">
+          ${h.label}
+          ${h.sub ? `<div class="sub">${h.sub}</div>` : ''}
+        </div>
+        <div class="habit-pts">${topGoal}</div>
+      </div>`;
+    }).join('');
+
+    const mealsHtml = WEEKS[currentWeek][day].meals.map(m => {
+      const done = isChecked(currentWeek, day, 'meal_' + m.id);
+      const doneAlt = isChecked(currentWeek, day, 'meal_alt_' + m.id);
+      const hasAlt = m.alt !== null && m.id === 'mi';
+
+      const mainRow = `<div class="meal-row${done ? ' done' : ''}" onclick="toggle(${currentWeek}, '${day}', 'meal_${m.id}')">
+        <div class="meal-check">✓</div>
+        <div class="meal-content">
+          <div class="meal-label">${m.label}</div>
+          <div class="meal-main">${m.main}</div>
+          <div class="meal-detail">${m.detail}</div>
+          ${m.wuerze ? `<span class="meal-wuerze">${m.wuerze}</span>` : ''}
+        </div>
+        <div class="meal-pts">Abnehmen</div>
+      </div>`;
+
+      const altRow = hasAlt ? `<div class="meal-row${doneAlt ? ' done' : ''}" onclick="toggle(${currentWeek}, '${day}', 'meal_alt_${m.id}')" style="background: var(--doner-light, #FDF5F0);">
+        <div class="meal-check" style="${doneAlt ? 'background:#8B4513;border-color:#8B4513' : 'border-color:#C4956A'}">✓</div>
+        <div class="meal-content">
+          <div class="meal-label" style="color:#8B4513">↔ Alternative: Döner</div>
+          <div class="meal-main">${m.alt.main}</div>
+          <div class="meal-detail">${m.alt.detail}</div>
+          ${m.alt.wuerze ? `<span class="meal-wuerze" style="background:#F5E6D8;color:#8B4513">${m.alt.wuerze}</span>` : ''}
+        </div>
+        <div class="meal-pts">Abnehmen</div>
+      </div>` : '';
+
+      return mainRow + altRow;
+    }).join('');
+
+    const wiegenHtml = isWiegeTag ? `
+      <div class="section" style="margin-bottom:12px">
+        <div class="section-header"><span>⚖️ Wiegen — Mittwoch nüchtern</span></div>
+        <div style="padding: 14px 16px; display:flex; align-items:center; gap:12px;">
+          <input type="number" id="weightInput" step="0.1" min="50" max="200"
+            value="${savedKg}"
+            placeholder="kg eingeben"
+            style="border:1px solid var(--border); border-radius:8px; padding:8px 12px; font-size:16px; width:120px; background:var(--bg);"
+            onchange="handleWeightInput(this.value)" />
+          <div style="font-size:13px; color:var(--ink-light);">
+            Ziel: <strong style="color:var(--accent)">85,0 kg</strong>
+            ${savedKg ? `· Noch: <strong style="color:var(--warn)">${Math.max(0, (parseFloat(savedKg) - TARGET_WEIGHT)).toFixed(1)} kg</strong>` : ''}
+          </div>
+        </div>
+        ${renderWeightHistory()}
+      </div>` : '';
+
+    // Extra food log
+    const extraKey = `extra_${currentWeek}_${day}`;
+    const extraData = state[extraKey] || { text: '', kcal: null, loading: false };
+    const planKcal = getDayPlanKcal(currentWeek, day);
+    const totalKcal = planKcal + (extraData.kcal || 0);
+
+    const extraHtml = `
+      <div class="section" style="margin-bottom:12px">
+        <div class="section-header">
+          <span>🍕 Extras aufschreiben</span>
+          ${extraData.kcal ? `<span class="section-score" style="color:var(--warn)">+${extraData.kcal} kcal</span>` : ''}
+        </div>
+        <div style="padding:12px 16px;">
+          <textarea id="extra_${day}" placeholder="z.B. halbe Tüte Erdnüsse, 1 Bier extra, 2 Stück Kuchen…"
+            style="width:100%; border:1px solid var(--border); border-radius:8px; padding:10px; font-size:14px; font-family:inherit; resize:none; background:var(--bg); min-height:60px; line-height:1.4;"
+            onblur="saveExtraText(${currentWeek}, '${day}', this.value)">${extraData.text}</textarea>
+          <div style="display:flex; gap:8px; margin-top:8px; align-items:center;">
+            <button onclick="estimateKcal(${currentWeek}, '${day}')"
+              style="background:var(--accent); color:white; border:none; border-radius:6px; padding:8px 14px; font-size:13px; cursor:pointer;">
+              ${extraData.loading ? '…' : 'Kalorien schätzen'}
+            </button>
+            ${extraData.kcal ? `<span style="font-size:13px; color:var(--warn); font-weight:600">≈ ${extraData.kcal} kcal extra</span>
+            <button onclick="clearExtra(${currentWeek}, '${day}')" style="background:none; border:1px solid var(--border); border-radius:6px; padding:6px 10px; font-size:12px; color:var(--ink-light); cursor:pointer;">✕</button>` : ''}
+          </div>
+        </div>
+      </div>`;
+
+    return `<div class="day-view${active}" id="view_${day}">
+      <div class="score-banner">
+        <div class="score-circle" style="border-color: ${circleColor}">
+          <span class="num" style="color: ${circleColor}">${idx.total}</span>
+          <span class="max">/ 100</span>
+        </div>
+        <div class="score-text">
+          <div class="label">${label}</div>
+          <div class="sub" style="display:flex; gap:10px; flex-wrap:wrap; margin-top:4px;">
+            <span>🥗 ${idx.a}</span>
+            <span>💪 ${idx.k}</span>
+            <span>💼 ${idx.p}</span>
+          </div>
+          <div class="sub" style="margin-top:4px; font-size:12px; color:var(--ink);">
+            📊 ${totalKcal} kcal
+            ${extraData.kcal ? `<span style="color:var(--warn)"> (Plan: ${planKcal} + Extra: ${extraData.kcal})</span>` : ''}
+          </div>
+        </div>
+      </div>
+
+      ${wiegenHtml}
+      ${extraHtml}
+
+      <div class="section">
+        <div class="section-header">
+          <span>Mahlzeiten</span>
+          <span class="section-score">${WEEKS[currentWeek][day].meals.filter(m => isChecked(currentWeek, day, 'meal_' + m.id) || isChecked(currentWeek, day, 'meal_alt_' + m.id)).length} / ${WEEKS[currentWeek][day].meals.length}</span>
+        </div>
+        ${mealsHtml}
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <span>Gewohnheiten</span>
+          <span class="section-score">${HABITS.filter(h => isChecked(currentWeek, day, h.id)).length} / ${HABITS.length}</span>
+        </div>
+        ${habitsHtml}
+      </div>
+
+      <button class="reset-btn" onclick="resetDay(event, '${day}')">Tag zurücksetzen</button>
+    </div>`;
+  }).join('');
+}
+
+function renderWeightHistory() {
+  const hist = getWeightHistory().slice(-6);
+  if (hist.length === 0) return '';
+  const rows = hist.map(e => {
+    const diff = e.kg - TARGET_WEIGHT;
+    const col = diff <= 0 ? 'var(--accent)' : 'var(--warn)';
+    return `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid var(--border); font-size:13px;">
+      <span style="color:var(--ink-light)">${e.date.slice(5).replace('-','.')}</span>
+      <span><strong>${e.kg} kg</strong></span>
+      <span style="color:${col}">${diff > 0 ? '+' : ''}${diff.toFixed(1)} kg zum Ziel</span>
+    </div>`;
+  }).join('');
+  return `<div style="padding: 0 16px 12px">${rows}</div>`;
+}
+
+function handleWeightInput(val) {
+  const kg = parseFloat(val);
+  if (!isNaN(kg) && kg > 40 && kg < 200) { saveWeight(kg); render(); }
+}
+
+function renderWeekOverview() {
+  const el = document.getElementById('weekBars');
+  const maxH = 48;
+  el.innerHTML = DAYS.map(day => {
+    const idx = getDayIndex(currentWeek, day);
+    const pct = idx.total / 100;
+    const h = Math.max(4, Math.round(pct * maxH));
+    const color = pct >= 0.8 ? 'var(--accent)' : pct >= 0.5 ? 'var(--bier)' : 'var(--border)';
+    return `<div class="week-bar-col">
+      <div class="bar-score">${idx.total}</div>
+      <div class="bar-fill" style="height: ${h}px; background: ${color}"></div>
+      <div class="bar-label">${day}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('weekLabel').textContent = 'Woche ' + currentWeek;
+}
+
+function selectDay(day) { currentDay = day; render(); }
+function prevWeek() { if (currentWeek > 1) { currentWeek--; render(); } }
+function nextWeek() { if (currentWeek < 2) { currentWeek++; render(); } }
+
+function resetDay(e, day) {
+  e.stopPropagation();
+  if (!confirm(`${DAY_FULL[day]} zurücksetzen?`)) return;
+  HABITS.forEach(h => delete state[getKey(currentWeek, day, h.id)]);
+  WEEKS[currentWeek][day].meals.forEach(m => {
+    delete state[getKey(currentWeek, day, 'meal_' + m.id)];
+    delete state[getKey(currentWeek, day, 'meal_alt_' + m.id)];
+  });
+  delete state[`extra_${currentWeek}_${day}`];
+  saveState();
+  render();
+}
+
+// ─── KCAL ────────────────────────────────────────────────────────────────────
+
+const PLAN_KCAL = {
+  1: { Mo: 1750, Di: 1700, Mi: 1620, Do: 1750, Fr: 1900 },
+  2: { Mo: 1730, Di: 1650, Mi: 1580, Do: 1680, Fr: 2200 },
+};
+
+function getDayPlanKcal(week, day) {
+  return PLAN_KCAL[week]?.[day] || 1700;
+}
+
+function getDayTotalKcal(week, day) {
+  const extra = (state[`extra_${week}_${day}`] || {}).kcal || 0;
+  return getDayPlanKcal(week, day) + extra;
+}
+
+function saveExtraText(week, day, text) {
+  const key = `extra_${week}_${day}`;
+  state[key] = { ...(state[key] || {}), text };
+  saveState();
+}
+
+function clearExtra(week, day) {
+  delete state[`extra_${week}_${day}`];
+  saveState();
+  render();
+}
+
+async function estimateKcal(week, day) {
+  const key = `extra_${week}_${day}`;
+  const text = (state[key] || {}).text || document.getElementById(`extra_${day}`)?.value || '';
+  if (!text.trim()) return;
+
+  state[key] = { ...(state[key] || {}), text, loading: true };
+  saveState();
+  render();
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 100,
+        system: 'Du bist ein Ernährungsexperte. Antworte NUR mit einer einzigen Zahl: die geschätzten Gesamtkalorien der genannten Lebensmittel. Keine Einheit, kein Text, nur die Zahl.',
+        messages: [{ role: 'user', content: `Schätze die Kalorien: ${text}` }]
+      })
+    });
+    const data = await response.json();
+    const kcal = parseInt(data.content?.[0]?.text?.trim());
+    if (!isNaN(kcal)) {
+      state[key] = { text, kcal, loading: false };
+      saveState();
+      render();
+    }
+  } catch (e) {
+    state[key] = { ...(state[key] || {}), loading: false };
+    saveState();
+    render();
+  }
+}
+
+// ─── VIEW SWITCHER ───────────────────────────────────────────────────────────
+
+let currentView = 'tracker';
+
+function showView(v) {
+  currentView = v;
+  document.getElementById('trackerView').style.display = v === 'tracker' ? 'block' : 'none';
+  document.getElementById('analyseView').style.display = v === 'analyse' ? 'block' : 'none';
+  document.getElementById('navTracker').style.background = v === 'tracker' ? 'var(--accent)' : 'var(--surface)';
+  document.getElementById('navTracker').style.color = v === 'tracker' ? 'white' : 'var(--ink)';
+  document.getElementById('navTracker').style.borderColor = v === 'tracker' ? 'var(--accent)' : 'var(--border)';
+  document.getElementById('navAnalyse').style.background = v === 'analyse' ? 'var(--accent)' : 'var(--surface)';
+  document.getElementById('navAnalyse').style.color = v === 'analyse' ? 'white' : 'var(--ink)';
+  document.getElementById('navAnalyse').style.borderColor = v === 'analyse' ? 'var(--accent)' : 'var(--border)';
+  document.getElementById('pageTitle').textContent = v === 'tracker' ? 'Tagesplan' : 'Analyse';
+  if (v === 'analyse') renderAnalyse();
+}
+
+// ─── ANALYSE ─────────────────────────────────────────────────────────────────
+
+function renderAnalyse() {
+  const el = document.getElementById('analyseContent');
+
+  // ── Week scores for both weeks ──
+  const weekScores = [1, 2].map(w => {
+    return DAYS.map(d => ({ day: d, score: getDayIndex(w, d).total, week: w }));
+  });
+
+  // ── Bar chart: both weeks side by side ──
+  const maxH = 80;
+  const barChartHtml = `
+    <div class="section" style="margin-bottom:12px">
+      <div class="section-header"><span>Wochenscore Mo–Fr</span></div>
+      <div style="padding:16px;">
+        <div style="display:flex; gap:4px; align-items:flex-end; height:${maxH + 24}px; margin-bottom:8px;">
+          ${DAYS.map((day, i) => {
+            const s1 = weekScores[0][i].score;
+            const s2 = weekScores[1][i].score;
+            const h1 = Math.max(4, Math.round((s1/100)*maxH));
+            const h2 = Math.max(4, Math.round((s2/100)*maxH));
+            const c1 = s1 >= 80 ? 'var(--accent)' : s1 >= 50 ? 'var(--bier)' : 'var(--border)';
+            const c2 = s2 >= 80 ? 'var(--accent)' : s2 >= 50 ? 'var(--bier)' : 'var(--border)';
+            return `<div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:2px;">
+              <div style="width:100%; display:flex; gap:2px; align-items:flex-end; height:${maxH}px;">
+                <div style="flex:1; height:${h1}px; background:${c1}; border-radius:3px 3px 0 0; opacity:1;" title="W1: ${s1}"></div>
+                <div style="flex:1; height:${h2}px; background:${c2}; border-radius:3px 3px 0 0; opacity:0.5;" title="W2: ${s2}"></div>
+              </div>
+              <div style="font-size:11px; color:var(--ink-light)">${day}</div>
+            </div>`;
+          }).join('')}
+        </div>
+        <div style="display:flex; gap:16px; font-size:12px; color:var(--ink-light);">
+          <span><span style="display:inline-block;width:10px;height:10px;background:var(--accent);border-radius:2px;margin-right:4px;"></span>Woche 1</span>
+          <span><span style="display:inline-block;width:10px;height:10px;background:var(--accent);opacity:0.5;border-radius:2px;margin-right:4px;"></span>Woche 2</span>
+        </div>
+      </div>
+    </div>`;
+
+  // ── Streak: consecutive days ≥ 70 across both weeks in order ──
+  const allDays = [...weekScores[0], ...weekScores[1]];
+  let streak = 0, maxStreak = 0, cur = 0;
+  allDays.forEach(d => {
+    if (d.score >= 70) { cur++; maxStreak = Math.max(maxStreak, cur); }
+    else cur = 0;
+  });
+  // Current streak from end
+  for (let i = allDays.length - 1; i >= 0; i--) {
+    if (allDays[i].score >= 70) streak++;
+    else break;
+  }
+  const streakHtml = `
+    <div class="section" style="margin-bottom:12px">
+      <div class="section-header"><span>Streak (≥ 70 Punkte)</span></div>
+      <div style="padding:16px; display:flex; gap:24px;">
+        <div style="text-align:center;">
+          <div style="font-family:Georgia,serif; font-size:36px; color:var(--accent); line-height:1">${streak}</div>
+          <div style="font-size:12px; color:var(--ink-light); margin-top:2px">Aktuell</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-family:Georgia,serif; font-size:36px; color:var(--ink-light); line-height:1">${maxStreak}</div>
+          <div style="font-size:12px; color:var(--ink-light); margin-top:2px">Bestmarke</div>
+        </div>
+        <div style="flex:1; display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
+          ${allDays.map((d, i) => {
+            const hit = d.score >= 70;
+            const label = `W${d.week} ${d.day}`;
+            return `<div title="${label}: ${d.score}" style="width:28px;height:28px;border-radius:50%;background:${hit ? 'var(--accent)' : 'var(--border)'};display:flex;align-items:center;justify-content:center;font-size:10px;color:${hit ? 'white' : 'var(--ink-light)'};">${d.score}</div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>`;
+
+  // ── Schwachstellen: habits missed most often across both weeks ──
+  const habitMisses = HABITS.map(h => {
+    let missed = 0;
+    [1, 2].forEach(w => DAYS.forEach(d => {
+      if (!isChecked(w, d, h.id)) missed++;
+    }));
+    return { label: h.label, missed, total: 10 };
+  }).sort((a, b) => b.missed - a.missed).slice(0, 5);
+
+  const weakHtml = `
+    <div class="section" style="margin-bottom:12px">
+      <div class="section-header"><span>Schwachstellen (häufigste Lücken)</span></div>
+      ${habitMisses.map(h => {
+        const pct = Math.round((h.missed / h.total) * 100);
+        const color = pct >= 70 ? 'var(--warn)' : pct >= 40 ? 'var(--bier)' : 'var(--accent)';
+        return `<div style="padding:10px 16px; border-bottom:1px solid var(--border);">
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <span style="font-size:13px">${h.label}</span>
+            <span style="font-size:12px; color:${color}">${h.missed}× verpasst</span>
+          </div>
+          <div style="height:4px; background:var(--border); border-radius:2px;">
+            <div style="height:4px; width:${100-pct}%; background:${color}; border-radius:2px; transition:width 0.3s;"></div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+
+  // ── Gewichtskurve ──
+  const weightHist = getWeightHistory();
+  let weightHtml = '';
+  if (weightHist.length === 0) {
+    weightHtml = `<div class="section" style="margin-bottom:12px">
+      <div class="section-header"><span>Gewichtsverlauf</span></div>
+      <div style="padding:20px 16px; text-align:center; color:var(--ink-light); font-size:13px;">Noch keine Messungen — jeden Mittwoch nüchtern eintragen.</div>
+    </div>`;
+  } else {
+    const vals = weightHist.map(e => e.kg);
+    const minV = Math.min(...vals, TARGET_WEIGHT) - 1;
+    const maxV = Math.max(...vals, TARGET_WEIGHT) + 1;
+    const range = maxV - minV;
+    const chartW = 300, chartH = 100;
+    const pts = weightHist.map((e, i) => {
+      const x = weightHist.length === 1 ? chartW/2 : (i / (weightHist.length - 1)) * chartW;
+      const y = chartH - ((e.kg - minV) / range) * chartH;
+      return { x, y, kg: e.kg, date: e.date };
+    });
+    const targetY = chartH - ((TARGET_WEIGHT - minV) / range) * chartH;
+    const polyline = pts.map(p => `${p.x},${p.y}`).join(' ');
+    const latest = vals[vals.length - 1];
+    const diff = (latest - TARGET_WEIGHT).toFixed(1);
+    const diffColor = diff <= 0 ? 'var(--accent)' : 'var(--warn)';
+
+    weightHtml = `<div class="section" style="margin-bottom:12px">
+      <div class="section-header">
+        <span>Gewichtsverlauf</span>
+        <span class="section-score" style="color:${diffColor}">${latest} kg · ${diff > 0 ? '+' : ''}${diff} zum Ziel</span>
+      </div>
+      <div style="padding:16px; overflow-x:auto;">
+        <svg viewBox="0 0 ${chartW} ${chartH + 20}" style="width:100%; max-width:${chartW}px; height:auto; display:block;">
+          <!-- Target line -->
+          <line x1="0" y1="${targetY}" x2="${chartW}" y2="${targetY}" stroke="var(--accent)" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+          <text x="${chartW - 2}" y="${targetY - 4}" font-size="9" fill="var(--accent)" text-anchor="end" opacity="0.7">85 kg</text>
+          <!-- Weight line -->
+          <polyline points="${polyline}" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/>
+          <!-- Dots -->
+          ${pts.map(p => `<circle cx="${p.x}" cy="${p.y}" r="4" fill="var(--surface)" stroke="var(--ink)" stroke-width="2"/>
+            <text x="${p.x}" y="${p.y - 8}" font-size="8" fill="var(--ink-light)" text-anchor="middle">${p.kg}</text>`).join('')}
+          <!-- X labels -->
+          ${pts.map(p => `<text x="${p.x}" y="${chartH + 14}" font-size="8" fill="var(--ink-light)" text-anchor="middle">${p.date.slice(5).replace('-','.')}</text>`).join('')}
+        </svg>
+      </div>
+    </div>`;
+  }
+
+  // ── Kcal chart ──
+  const kcalChartHtml = (() => {
+    const allKcal = [1, 2].map(w => DAYS.map(d => ({ day: d, week: w, kcal: getDayTotalKcal(w, d) })));
+    const target = 2500;
+    const maxKcal = Math.max(...allKcal.flat().map(d => d.kcal), target) + 200;
+    const chartH = 80;
+    return `<div class="section" style="margin-bottom:12px">
+      <div class="section-header"><span>Kalorien pro Tag (Ziel: 2.500)</span></div>
+      <div style="padding:16px;">
+        <div style="display:flex; gap:4px; align-items:flex-end; height:${chartH + 24}px; margin-bottom:8px;">
+          ${DAYS.map((day, i) => {
+            const k1 = allKcal[0][i].kcal;
+            const k2 = allKcal[1][i].kcal;
+            const h1 = Math.max(4, Math.round((k1/maxKcal)*chartH));
+            const h2 = Math.max(4, Math.round((k2/maxKcal)*chartH));
+            const targetH = Math.round((target/maxKcal)*chartH);
+            const c1 = k1 > target + 200 ? 'var(--warn)' : k1 > target ? 'var(--bier)' : 'var(--accent)';
+            const c2 = k2 > target + 200 ? 'var(--warn)' : k2 > target ? 'var(--bier)' : 'var(--accent)';
+            return `<div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; position:relative;">
+              <div style="width:100%; display:flex; gap:2px; align-items:flex-end; height:${chartH}px; position:relative;">
+                <div style="position:absolute; bottom:${targetH}px; left:0; right:0; border-top:1px dashed var(--accent); opacity:0.4; pointer-events:none;"></div>
+                <div style="flex:1; height:${h1}px; background:${c1}; border-radius:3px 3px 0 0;" title="W1 ${day}: ${k1} kcal"></div>
+                <div style="flex:1; height:${h2}px; background:${c2}; border-radius:3px 3px 0 0; opacity:0.5;" title="W2 ${day}: ${k2} kcal"></div>
+              </div>
+              <div style="font-size:11px; color:var(--ink-light)">${day}</div>
+            </div>`;
+          }).join('')}
+        </div>
+        <div style="display:flex; gap:16px; font-size:12px; color:var(--ink-light);">
+          <span><span style="display:inline-block;width:10px;height:10px;background:var(--accent);border-radius:2px;margin-right:4px;"></span>Woche 1</span>
+          <span><span style="display:inline-block;width:10px;height:10px;background:var(--accent);opacity:0.5;border-radius:2px;margin-right:4px;"></span>Woche 2</span>
+          <span style="color:var(--warn)">■ über Ziel</span>
+        </div>
+      </div>
+    </div>`;
+  })();
+
+  el.innerHTML = barChartHtml + kcalChartHtml + streakHtml + weightHtml + weakHtml;
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+const todayIdx = new Date().getDay();
+const dayMap = { 1: 'Mo', 2: 'Di', 3: 'Mi', 4: 'Do', 5: 'Fr' };
+if (dayMap[todayIdx]) currentDay = dayMap[todayIdx];
+render();
+</script>
+</body>
+</html>
