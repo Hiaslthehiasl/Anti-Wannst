@@ -746,29 +746,36 @@ function renderDayViews() {
         ${renderWeightHistory()}
       </div>` : '';
 
-    // Extra food log
-    const extraKey = `extra_${getDateKey(day)}`;
-    const extraData = state[extraKey] || { text: '', kcal: null, loading: false };
+    // Extra food log — list of items
+    const extraListKey = `extras_${getDateKey(day)}`;
+    const extraList = state[extraListKey] || [];
+    const extraTotalKcal = extraList.reduce((s, e) => s + (e.kcal || 0), 0);
     const planKcal = getDayPlanKcal(mealW, day);
-    const totalKcal = planKcal + (extraData.kcal || 0);
+    const totalKcal = planKcal + extraTotalKcal;
+
+    const extraItemsHtml = extraList.map((item, idx2) =>
+      `<div style="display:flex; align-items:center; gap:10px; padding:8px 16px; border-bottom:1px solid var(--border);">
+        <div style="flex:1; font-size:13px;">${item.text}</div>
+        <div style="font-size:13px; font-weight:600; color:var(--warn); white-space:nowrap;">+${item.kcal} kcal</div>
+        <button onclick="deleteExtraItem('${day}', ${idx2})" style="background:none; border:none; font-size:16px; color:var(--ink-light); cursor:pointer; padding:0 4px;">✕</button>
+      </div>`
+    ).join('');
 
     const extraHtml = `
       <div class="section" style="margin-bottom:12px">
         <div class="section-header">
-          <span>🍕 Extras aufschreiben</span>
-          ${extraData.kcal ? `<span class="section-score" style="color:var(--warn)">+${extraData.kcal} kcal</span>` : ''}
+          <span>🍕 Extras</span>
+          ${extraTotalKcal > 0 ? `<span class="section-score" style="color:var(--warn)">+${extraTotalKcal} kcal</span>` : ''}
         </div>
+        ${extraItemsHtml}
         <div style="padding:12px 16px;">
-          <textarea id="extra_${day}" placeholder="z.B. halbe Tüte Erdnüsse, 1 Bier extra, 2 Stück Kuchen…"
-            style="width:100%; border:1px solid var(--border); border-radius:8px; padding:10px; font-size:14px; font-family:inherit; resize:none; background:var(--bg); min-height:70px; line-height:1.4; -webkit-user-select:text; user-select:text;"
-            >${extraData.text}</textarea>
+          <textarea id="extra_${day}" placeholder="z.B. Chips, 2 Bier, Stück Kuchen…"
+            style="width:100%; border:1px solid var(--border); border-radius:8px; padding:10px; font-size:14px; font-family:inherit; resize:none; background:var(--bg); min-height:60px; line-height:1.4; -webkit-user-select:text; user-select:text;"></textarea>
           <div style="display:flex; gap:8px; margin-top:8px; align-items:center; flex-wrap:wrap;">
-            <button onclick="estimateKcalFromField('${day}', ${mealW})"
+            <button id="estimateBtn_${day}" onclick="estimateAndAdd('${day}')"
               style="background:var(--accent); color:white; border:none; border-radius:6px; padding:8px 14px; font-size:13px; cursor:pointer;">
-              ${extraData.loading ? '⏳ Schätze…' : '🤖 Kalorien schätzen'}
+              🤖 Schätzen & übernehmen
             </button>
-            ${extraData.kcal ? `<span style="font-size:13px; color:var(--warn); font-weight:600">≈ ${extraData.kcal} kcal extra</span>
-            <button onclick="clearExtra(${mealW}, '${day}')" style="background:none; border:1px solid var(--border); border-radius:6px; padding:6px 10px; font-size:12px; color:var(--ink-light); cursor:pointer;">✕ löschen</button>` : ''}
           </div>
         </div>
       </div>`;
@@ -788,7 +795,7 @@ function renderDayViews() {
           </div>
           <div class="sub" style="margin-top:4px; font-size:12px; color:var(--ink);">
             📊 ${totalKcal} kcal
-            ${extraData.kcal ? `<span style="color:var(--warn)"> (Plan: ${planKcal} + Extra: ${extraData.kcal})</span>` : ''}
+            ${extraTotalKcal > 0 ? `<span style="color:var(--warn)"> (Plan: ${planKcal} + Extra: ${extraTotalKcal})</span>` : ''}
           </div>
         </div>
       </div>
@@ -874,7 +881,7 @@ function resetDay(e, day) {
     delete state[getKey(currentWeek, day, 'meal_' + m.id)];
     delete state[getKey(currentWeek, day, 'meal_alt_' + m.id)];
   });
-  delete state[`extra_${getDateKey(day)}`];
+  delete state[`extras_${getDateKey(day)}`];
   saveState();
   render();
 }
@@ -891,33 +898,19 @@ function getDayPlanKcal(week, day) {
 }
 
 function getDayTotalKcal(week, day) {
-  const extra = (state[`extra_${getDateKey(day)}`] || {}).kcal || 0;
+  const list = state[`extras_${getDateKey(day)}`] || [];
+  const extra = list.reduce((s, e) => s + (e.kcal || 0), 0);
   return getDayPlanKcal(week, day) + extra;
 }
 
-function saveExtraText(week, day, text) {
-  const key = `extra_${getDateKey(day)}`;
-  state[key] = { ...(state[key] || {}), text };
-  saveState();
-}
+// saveExtraText/clearExtra replaced by estimateAndAdd/deleteExtraItem
 
-function clearExtra(week, day) {
-  delete state[`extra_${getDateKey(day)}`];
-  saveState();
-  render();
-}
-
-async function estimateKcalFromField(day, week) {
+async function estimateAndAdd(day) {
   const textarea = document.getElementById(`extra_${day}`);
   const text = textarea ? textarea.value.trim() : '';
   if (!text) return;
 
-  const key = `extra_${getDateKey(day)}`;
-  state[key] = { text, kcal: null, loading: true };
-  saveState();
-
-  // Update button without full re-render
-  const btn = textarea.nextElementSibling?.querySelector('button');
+  const btn = document.getElementById(`estimateBtn_${day}`);
   if (btn) btn.textContent = '⏳ Schätze…';
 
   try {
@@ -934,20 +927,35 @@ async function estimateKcalFromField(day, week) {
     const data = await response.json();
     const kcal = parseInt(data.content?.[0]?.text?.trim());
     if (!isNaN(kcal)) {
-      state[key] = { text, kcal, loading: false };
+      const key = `extras_${getDateKey(day)}`;
+      const list = state[key] || [];
+      list.push({ text, kcal });
+      state[key] = list;
       saveState();
+      if (textarea) textarea.value = '';
       render();
     }
   } catch (e) {
-    state[key] = { text, kcal: null, loading: false };
-    saveState();
-    render();
+    if (btn) btn.textContent = '🤖 Schätzen & übernehmen';
   }
 }
 
-async function estimateKcal(week, day) {
-  return estimateKcalFromField(day, week);
+function deleteExtraItem(day, idx) {
+  const key = `extras_${getDateKey(day)}`;
+  const list = state[key] || [];
+  list.splice(idx, 1);
+  state[key] = list;
+  saveState();
+  render();
 }
+
+function clearExtra(week, day) {
+  delete state[`extras_${getDateKey(day)}`];
+  saveState();
+  render();
+}
+
+async function estimateKcal(week, day) { /* legacy — unused */ }
 
 // ─── VIEW SWITCHER ───────────────────────────────────────────────────────────
 
