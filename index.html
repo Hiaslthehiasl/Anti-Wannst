@@ -506,9 +506,49 @@ const DAY_FULL = { Mo: 'Montag', Di: 'Dienstag', Mi: 'Mittwoch', Do: 'Donnerstag
 const GOAL_WEIGHTS = { a: 0.40, k: 0.30, p: 0.30 };
 const TARGET_WEIGHT = 85.0;
 
+// ─── DATE / KW HELPERS ───────────────────────────────────────────────────────
+
+function getMonday(d) {
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  date.setDate(date.getDate() + diff);
+  date.setHours(0,0,0,0);
+  return date;
+}
+
+function getKW(d) {
+  const date = new Date(d);
+  date.setHours(0,0,0,0);
+  date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
+  const week1 = new Date(date.getFullYear(), 0, 4);
+  return 1 + Math.round(((date - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+}
+
+function getDayDate(dayAbbr) {
+  const offsets = { Mo: 0, Di: 1, Mi: 2, Do: 3, Fr: 4 };
+  const d = new Date(currentMonday);
+  d.setDate(d.getDate() + offsets[dayAbbr]);
+  return d;
+}
+
+function getDateKey(dayAbbr) {
+  const d = getDayDate(dayAbbr);
+  return d.toISOString().slice(0, 10);
+}
+
+function formatDate(d) {
+  return d.toLocaleDateString('de-DE', { day: 'numeric', month: 'numeric' });
+}
+
+function getMealWeek() {
+  return getKW(currentMonday) % 2 === 1 ? 1 : 2;
+}
+
 // ─── STATE ──────────────────────────────────────────────────────────────────
 
-let currentWeek = 1;
+let currentMonday = getMonday(new Date());
+let currentWeek = getMealWeek();
 let currentDay = DAYS[0];
 let state = loadState();
 
