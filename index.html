@@ -71,7 +71,8 @@
 
   .day-tab {
     flex-shrink: 0;
-    padding: 8px 16px;
+    padding: 10px 16px 8px;
+    margin-top: 6px;
     border: 1px solid var(--border);
     border-radius: 20px;
     font-size: 13px;
@@ -147,16 +148,7 @@
     color: var(--ink-light);
   }
 
-  .score-text .label {
-    font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 2px;
-  }
-
-  .score-text .sub {
-    font-size: 12px;
-    color: var(--ink-light);
-  }
+  .score-text { flex: 1; display: flex; flex-direction: column; gap: 2px; }
 
   /* Section */
   .section {
@@ -721,15 +713,15 @@ function renderDayViews() {
         </div>
         <div style="padding:12px 16px;">
           <textarea id="extra_${day}" placeholder="z.B. halbe Tüte Erdnüsse, 1 Bier extra, 2 Stück Kuchen…"
-            style="width:100%; border:1px solid var(--border); border-radius:8px; padding:10px; font-size:14px; font-family:inherit; resize:none; background:var(--bg); min-height:60px; line-height:1.4;"
-            onblur="saveExtraText(${currentWeek}, '${day}', this.value)">${extraData.text}</textarea>
-          <div style="display:flex; gap:8px; margin-top:8px; align-items:center;">
-            <button onclick="estimateKcal(${currentWeek}, '${day}')"
+            style="width:100%; border:1px solid var(--border); border-radius:8px; padding:10px; font-size:14px; font-family:inherit; resize:none; background:var(--bg); min-height:70px; line-height:1.4; -webkit-user-select:text; user-select:text;"
+            >${extraData.text}</textarea>
+          <div style="display:flex; gap:8px; margin-top:8px; align-items:center; flex-wrap:wrap;">
+            <button onclick="estimateKcalFromField('${day}', ${currentWeek})"
               style="background:var(--accent); color:white; border:none; border-radius:6px; padding:8px 14px; font-size:13px; cursor:pointer;">
-              ${extraData.loading ? '…' : 'Kalorien schätzen'}
+              ${extraData.loading ? '⏳ Schätze…' : '🤖 Kalorien schätzen'}
             </button>
             ${extraData.kcal ? `<span style="font-size:13px; color:var(--warn); font-weight:600">≈ ${extraData.kcal} kcal extra</span>
-            <button onclick="clearExtra(${currentWeek}, '${day}')" style="background:none; border:1px solid var(--border); border-radius:6px; padding:6px 10px; font-size:12px; color:var(--ink-light); cursor:pointer;">✕</button>` : ''}
+            <button onclick="clearExtra(${currentWeek}, '${day}')" style="background:none; border:1px solid var(--border); border-radius:6px; padding:6px 10px; font-size:12px; color:var(--ink-light); cursor:pointer;">✕ löschen</button>` : ''}
           </div>
         </div>
       </div>`;
@@ -860,14 +852,18 @@ function clearExtra(week, day) {
   render();
 }
 
-async function estimateKcal(week, day) {
-  const key = `extra_${week}_${day}`;
-  const text = (state[key] || {}).text || document.getElementById(`extra_${day}`)?.value || '';
-  if (!text.trim()) return;
+async function estimateKcalFromField(day, week) {
+  const textarea = document.getElementById(`extra_${day}`);
+  const text = textarea ? textarea.value.trim() : '';
+  if (!text) return;
 
-  state[key] = { ...(state[key] || {}), text, loading: true };
+  const key = `extra_${week}_${day}`;
+  state[key] = { text, kcal: null, loading: true };
   saveState();
-  render();
+
+  // Update button without full re-render
+  const btn = textarea.nextElementSibling?.querySelector('button');
+  if (btn) btn.textContent = '⏳ Schätze…';
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -888,10 +884,14 @@ async function estimateKcal(week, day) {
       render();
     }
   } catch (e) {
-    state[key] = { ...(state[key] || {}), loading: false };
+    state[key] = { text, kcal: null, loading: false };
     saveState();
     render();
   }
+}
+
+async function estimateKcal(week, day) {
+  return estimateKcalFromField(day, week);
 }
 
 // ─── VIEW SWITCHER ───────────────────────────────────────────────────────────
