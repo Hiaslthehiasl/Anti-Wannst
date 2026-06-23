@@ -379,9 +379,9 @@
 <!-- TRACKER VIEW -->
 <div id="trackerView">
 <div class="week-nav">
-  <button onclick="prevWeek()">← W1</button>
-  <span id="weekLabel">Woche 1</span>
-  <button onclick="nextWeek()">W2 →</button>
+  <button onclick="prevWeek()">← Vorwoche</button>
+  <span id="weekLabel"></span>
+  <button onclick="nextWeek()">Nächste →</button>
 </div>
 
 <div class="week-bar" id="weekOverview">
@@ -523,7 +523,10 @@ function saveState() {
   try { localStorage.setItem('tracker_v1', JSON.stringify(state)); } catch {}
 }
 
-function getKey(week, day, id) { return `w${week}_${day}_${id}`; }
+function getKey(week, day, id) {
+  // week param ignored — use real date
+  return `${getDateKey(day)}_${id}`;
+}
 
 function isChecked(week, day, id) { return !!state[getKey(week, day, id)]; }
 
@@ -609,18 +612,21 @@ function render() {
 function renderDateInfo() {
   const now = new Date();
   document.getElementById('dateInfo').innerHTML =
-    now.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' }) +
-    '<br>Woche ' + currentWeek;
+    new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' }) +
+    `<br>KW ${getKW(currentMonday)}`;
 }
 
 function renderTabs() {
   const el = document.getElementById('dayTabs');
+  const mw = getMealWeek();
   el.innerHTML = DAYS.map(day => {
-    const idx = getDayIndex(currentWeek, day);
+    const idx = getDayIndex(mw, day);
     const cls = scoreClass(idx.total);
     const active = day === currentDay ? ' active' : '';
+    const date = formatDate(getDayDate(day));
     return `<div class="day-tab${active}" onclick="selectDay('${day}')">
-      ${DAY_FULL[day]}
+      <div style="font-weight:600">${day}</div>
+      <div style="font-size:10px; opacity:0.75">${date}</div>
       <span class="score-dot ${cls}">${idx.total}</span>
     </div>`;
   }).join('');
@@ -630,19 +636,20 @@ function renderDayViews() {
   const el = document.getElementById('dayViews');
   el.innerHTML = DAYS.map(day => {
     const active = day === currentDay ? ' active' : '';
-    const idx = getDayIndex(currentWeek, day);
+    const mealW = getMealWeek();
+    const idx = getDayIndex(mealW, day);
     const cls = scoreClass(idx.total);
     const label = scoreLabel(idx.total);
     const circleColor = cls === 'high' ? 'var(--accent)' : cls === 'mid' ? 'var(--bier)' : 'var(--warn)';
     const isWiegeTag = day === 'Mi';
-    const todayKey = 'weight_' + new Date().toISOString().slice(0,10);
+    const todayKey = 'weight_' + getDayDate(day).toISOString().slice(0,10);
     const savedKg = state[todayKey] || '';
 
     const habitsHtml = HABITS.map(h => {
       const done = isChecked(currentWeek, day, h.id);
       const topW = Math.max(h.w.a, h.w.k, h.w.p);
       const topGoal = topW === h.w.a ? 'Abnehmen' : topW === h.w.k ? 'Kraft' : 'Produktivität';
-      return `<div class="habit-row${done ? ' done' : ''}" onclick="toggle(${currentWeek}, '${day}', '${h.id}')">
+      return `<div class="habit-row${done ? ' done' : ''}" onclick="toggle(${mealW}, '${day}', '${h.id}')">
         <div class="check">✓</div>
         <div class="habit-text">
           ${h.label}
@@ -657,7 +664,7 @@ function renderDayViews() {
       const doneAlt = isChecked(currentWeek, day, 'meal_alt_' + m.id);
       const hasAlt = m.alt !== null && m.id === 'mi';
 
-      const mainRow = `<div class="meal-row${done ? ' done' : ''}" onclick="toggle(${currentWeek}, '${day}', 'meal_${m.id}')">
+      const mainRow = `<div class="meal-row${done ? ' done' : ''}" onclick="toggle(${mealW}, '${day}', 'meal_${m.id}')">
         <div class="meal-check">✓</div>
         <div class="meal-content">
           <div class="meal-label">${m.label}</div>
@@ -668,7 +675,7 @@ function renderDayViews() {
         <div class="meal-pts">Abnehmen</div>
       </div>`;
 
-      const altRow = hasAlt ? `<div class="meal-row${doneAlt ? ' done' : ''}" onclick="toggle(${currentWeek}, '${day}', 'meal_alt_${m.id}')" style="background: var(--doner-light, #FDF5F0);">
+      const altRow = hasAlt ? `<div class="meal-row${doneAlt ? ' done' : ''}" onclick="toggle(${mealW}, '${day}', 'meal_alt_${m.id}')" style="background: var(--doner-light, #FDF5F0);">
         <div class="meal-check" style="${doneAlt ? 'background:#8B4513;border-color:#8B4513' : 'border-color:#C4956A'}">✓</div>
         <div class="meal-content">
           <div class="meal-label" style="color:#8B4513">↔ Alternative: Döner</div>
@@ -700,9 +707,9 @@ function renderDayViews() {
       </div>` : '';
 
     // Extra food log
-    const extraKey = `extra_${currentWeek}_${day}`;
+    const extraKey = `extra_${getDateKey(day)}`;
     const extraData = state[extraKey] || { text: '', kcal: null, loading: false };
-    const planKcal = getDayPlanKcal(currentWeek, day);
+    const planKcal = getDayPlanKcal(mealW, day);
     const totalKcal = planKcal + (extraData.kcal || 0);
 
     const extraHtml = `
@@ -716,12 +723,12 @@ function renderDayViews() {
             style="width:100%; border:1px solid var(--border); border-radius:8px; padding:10px; font-size:14px; font-family:inherit; resize:none; background:var(--bg); min-height:70px; line-height:1.4; -webkit-user-select:text; user-select:text;"
             >${extraData.text}</textarea>
           <div style="display:flex; gap:8px; margin-top:8px; align-items:center; flex-wrap:wrap;">
-            <button onclick="estimateKcalFromField('${day}', ${currentWeek})"
+            <button onclick="estimateKcalFromField('${day}', ${mealW})"
               style="background:var(--accent); color:white; border:none; border-radius:6px; padding:8px 14px; font-size:13px; cursor:pointer;">
               ${extraData.loading ? '⏳ Schätze…' : '🤖 Kalorien schätzen'}
             </button>
             ${extraData.kcal ? `<span style="font-size:13px; color:var(--warn); font-weight:600">≈ ${extraData.kcal} kcal extra</span>
-            <button onclick="clearExtra(${currentWeek}, '${day}')" style="background:none; border:1px solid var(--border); border-radius:6px; padding:6px 10px; font-size:12px; color:var(--ink-light); cursor:pointer;">✕ löschen</button>` : ''}
+            <button onclick="clearExtra(${mealW}, '${day}')" style="background:none; border:1px solid var(--border); border-radius:6px; padding:6px 10px; font-size:12px; color:var(--ink-light); cursor:pointer;">✕ löschen</button>` : ''}
           </div>
         </div>
       </div>`;
@@ -804,12 +811,20 @@ function renderWeekOverview() {
       <div class="bar-label">${day}</div>
     </div>`;
   }).join('');
-  document.getElementById('weekLabel').textContent = 'Woche ' + currentWeek;
+  document.getElementById('weekLabel').textContent = `KW ${getKW(currentMonday)} · ${currentMonday.getFullYear()}`;
 }
 
 function selectDay(day) { currentDay = day; render(); }
-function prevWeek() { if (currentWeek > 1) { currentWeek--; render(); } }
-function nextWeek() { if (currentWeek < 2) { currentWeek++; render(); } }
+function prevWeek() {
+  currentMonday = new Date(currentMonday);
+  currentMonday.setDate(currentMonday.getDate() - 7);
+  render();
+}
+function nextWeek() {
+  currentMonday = new Date(currentMonday);
+  currentMonday.setDate(currentMonday.getDate() + 7);
+  render();
+}
 
 function resetDay(e, day) {
   e.stopPropagation();
@@ -819,7 +834,7 @@ function resetDay(e, day) {
     delete state[getKey(currentWeek, day, 'meal_' + m.id)];
     delete state[getKey(currentWeek, day, 'meal_alt_' + m.id)];
   });
-  delete state[`extra_${currentWeek}_${day}`];
+  delete state[`extra_${getDateKey(day)}`];
   saveState();
   render();
 }
@@ -836,18 +851,18 @@ function getDayPlanKcal(week, day) {
 }
 
 function getDayTotalKcal(week, day) {
-  const extra = (state[`extra_${week}_${day}`] || {}).kcal || 0;
+  const extra = (state[`extra_${getDateKey(day)}`] || {}).kcal || 0;
   return getDayPlanKcal(week, day) + extra;
 }
 
 function saveExtraText(week, day, text) {
-  const key = `extra_${week}_${day}`;
+  const key = `extra_${getDateKey(day)}`;
   state[key] = { ...(state[key] || {}), text };
   saveState();
 }
 
 function clearExtra(week, day) {
-  delete state[`extra_${week}_${day}`];
+  delete state[`extra_${getDateKey(day)}`];
   saveState();
   render();
 }
@@ -857,7 +872,7 @@ async function estimateKcalFromField(day, week) {
   const text = textarea ? textarea.value.trim() : '';
   if (!text) return;
 
-  const key = `extra_${week}_${day}`;
+  const key = `extra_${getDateKey(day)}`;
   state[key] = { text, kcal: null, loading: true };
   saveState();
 
@@ -917,43 +932,48 @@ function showView(v) {
 function renderAnalyse() {
   const el = document.getElementById('analyseContent');
 
-  // ── Week scores for both weeks ──
-  const weekScores = [1, 2].map(w => {
-    return DAYS.map(d => ({ day: d, score: getDayIndex(w, d).total, week: w }));
+  // ── Last 4 KW scores ──
+  const kwList = [];
+  for (let i = 3; i >= 0; i--) {
+    const mon = new Date(currentMonday);
+    mon.setDate(mon.getDate() - i * 7);
+    kwList.push({ mon, kw: getKW(mon) });
+  }
+  // For analyse, temporarily set currentMonday to compute scores
+  const savedMonday = currentMonday;
+  const weekScores = kwList.map(({ mon, kw }) => {
+    currentMonday = mon;
+    const scores = DAYS.map(d => ({ day: d, score: getDayIndex(getMealWeek(), d).total, kw }));
+    return scores;
   });
+  currentMonday = savedMonday;
 
   // ── Bar chart: both weeks side by side ──
   const maxH = 80;
+  // Weekly average scores
+  const weekAvgs = weekScores.map(ws => Math.round(ws.reduce((s,d) => s + d.score, 0) / ws.length));
   const barChartHtml = `
     <div class="section" style="margin-bottom:12px">
-      <div class="section-header"><span>Wochenscore Mo–Fr</span></div>
+      <div class="section-header"><span>Wochenscore (letzte 4 KW)</span></div>
       <div style="padding:16px;">
-        <div style="display:flex; gap:4px; align-items:flex-end; height:${maxH + 24}px; margin-bottom:8px;">
-          ${DAYS.map((day, i) => {
-            const s1 = weekScores[0][i].score;
-            const s2 = weekScores[1][i].score;
-            const h1 = Math.max(4, Math.round((s1/100)*maxH));
-            const h2 = Math.max(4, Math.round((s2/100)*maxH));
-            const c1 = s1 >= 80 ? 'var(--accent)' : s1 >= 50 ? 'var(--bier)' : 'var(--border)';
-            const c2 = s2 >= 80 ? 'var(--accent)' : s2 >= 50 ? 'var(--bier)' : 'var(--border)';
-            return `<div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:2px;">
-              <div style="width:100%; display:flex; gap:2px; align-items:flex-end; height:${maxH}px;">
-                <div style="flex:1; height:${h1}px; background:${c1}; border-radius:3px 3px 0 0; opacity:1;" title="W1: ${s1}"></div>
-                <div style="flex:1; height:${h2}px; background:${c2}; border-radius:3px 3px 0 0; opacity:0.5;" title="W2: ${s2}"></div>
-              </div>
-              <div style="font-size:11px; color:var(--ink-light)">${day}</div>
+        <div style="display:flex; gap:8px; align-items:flex-end; height:${maxH + 24}px; margin-bottom:4px;">
+          ${kwList.map(({ kw }, i) => {
+            const avg = weekAvgs[i];
+            const h = Math.max(4, Math.round((avg/100)*maxH));
+            const c = avg >= 80 ? 'var(--accent)' : avg >= 50 ? 'var(--bier)' : 'var(--border)';
+            const isCurrent = i === kwList.length - 1;
+            return `<div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;">
+              <div style="font-size:11px; font-weight:${isCurrent?'700':'400'}; color:var(--ink)">${avg}</div>
+              <div style="width:100%; height:${h}px; background:${c}; border-radius:4px 4px 0 0; ${isCurrent?'outline:2px solid var(--accent);':''}" title="KW${kw}: ${avg}"></div>
+              <div style="font-size:11px; color:${isCurrent?'var(--accent)':'var(--ink-light)'}; font-weight:${isCurrent?'700':'400'}">KW${kw}</div>
             </div>`;
           }).join('')}
-        </div>
-        <div style="display:flex; gap:16px; font-size:12px; color:var(--ink-light);">
-          <span><span style="display:inline-block;width:10px;height:10px;background:var(--accent);border-radius:2px;margin-right:4px;"></span>Woche 1</span>
-          <span><span style="display:inline-block;width:10px;height:10px;background:var(--accent);opacity:0.5;border-radius:2px;margin-right:4px;"></span>Woche 2</span>
         </div>
       </div>
     </div>`;
 
   // ── Streak: consecutive days ≥ 70 across both weeks in order ──
-  const allDays = [...weekScores[0], ...weekScores[1]];
+  const allDays = weekScores.flat();
   let streak = 0, maxStreak = 0, cur = 0;
   allDays.forEach(d => {
     if (d.score >= 70) { cur++; maxStreak = Math.max(maxStreak, cur); }
@@ -979,7 +999,7 @@ function renderAnalyse() {
         <div style="flex:1; display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
           ${allDays.map((d, i) => {
             const hit = d.score >= 70;
-            const label = `W${d.week} ${d.day}`;
+            const label = `KW${d.kw} ${d.day}`;
             return `<div title="${label}: ${d.score}" style="width:28px;height:28px;border-radius:50%;background:${hit ? 'var(--accent)' : 'var(--border)'};display:flex;align-items:center;justify-content:center;font-size:10px;color:${hit ? 'white' : 'var(--ink-light)'};">${d.score}</div>`;
           }).join('')}
         </div>
@@ -1061,37 +1081,34 @@ function renderAnalyse() {
   }
 
   // ── Kcal chart ──
+  // Kcal for current week only
   const kcalChartHtml = (() => {
-    const allKcal = [1, 2].map(w => DAYS.map(d => ({ day: d, week: w, kcal: getDayTotalKcal(w, d) })));
+    const mw = getMealWeek();
+    const kcalData = DAYS.map(d => ({ day: d, kcal: getDayTotalKcal(mw, d) }));
     const target = 2500;
-    const maxKcal = Math.max(...allKcal.flat().map(d => d.kcal), target) + 200;
+    const maxKcal = Math.max(...kcalData.map(d => d.kcal), target) + 200;
     const chartH = 80;
     return `<div class="section" style="margin-bottom:12px">
-      <div class="section-header"><span>Kalorien pro Tag (Ziel: 2.500)</span></div>
+      <div class="section-header"><span>Kalorien diese Woche (Ziel: 2.500)</span></div>
       <div style="padding:16px;">
-        <div style="display:flex; gap:4px; align-items:flex-end; height:${chartH + 24}px; margin-bottom:8px;">
-          ${DAYS.map((day, i) => {
-            const k1 = allKcal[0][i].kcal;
-            const k2 = allKcal[1][i].kcal;
-            const h1 = Math.max(4, Math.round((k1/maxKcal)*chartH));
-            const h2 = Math.max(4, Math.round((k2/maxKcal)*chartH));
+        <div style="display:flex; gap:8px; align-items:flex-end; height:${chartH + 24}px; margin-bottom:4px;">
+          ${kcalData.map(({ day, kcal }) => {
+            const h = Math.max(4, Math.round((kcal/maxKcal)*chartH));
             const targetH = Math.round((target/maxKcal)*chartH);
-            const c1 = k1 > target + 200 ? 'var(--warn)' : k1 > target ? 'var(--bier)' : 'var(--accent)';
-            const c2 = k2 > target + 200 ? 'var(--warn)' : k2 > target ? 'var(--bier)' : 'var(--accent)';
-            return `<div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; position:relative;">
-              <div style="width:100%; display:flex; gap:2px; align-items:flex-end; height:${chartH}px; position:relative;">
-                <div style="position:absolute; bottom:${targetH}px; left:0; right:0; border-top:1px dashed var(--accent); opacity:0.4; pointer-events:none;"></div>
-                <div style="flex:1; height:${h1}px; background:${c1}; border-radius:3px 3px 0 0;" title="W1 ${day}: ${k1} kcal"></div>
-                <div style="flex:1; height:${h2}px; background:${c2}; border-radius:3px 3px 0 0; opacity:0.5;" title="W2 ${day}: ${k2} kcal"></div>
+            const c = kcal > target + 200 ? 'var(--warn)' : kcal > target ? 'var(--bier)' : 'var(--accent)';
+            return `<div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;">
+              <div style="font-size:10px; color:var(--ink)">${kcal}</div>
+              <div style="width:100%; position:relative; height:${chartH}px; display:flex; align-items:flex-end;">
+                <div style="position:absolute; bottom:${targetH}px; left:0; right:0; border-top:1px dashed var(--accent); opacity:0.4;"></div>
+                <div style="width:100%; height:${h}px; background:${c}; border-radius:4px 4px 0 0;"></div>
               </div>
               <div style="font-size:11px; color:var(--ink-light)">${day}</div>
             </div>`;
           }).join('')}
         </div>
-        <div style="display:flex; gap:16px; font-size:12px; color:var(--ink-light);">
-          <span><span style="display:inline-block;width:10px;height:10px;background:var(--accent);border-radius:2px;margin-right:4px;"></span>Woche 1</span>
-          <span><span style="display:inline-block;width:10px;height:10px;background:var(--accent);opacity:0.5;border-radius:2px;margin-right:4px;"></span>Woche 2</span>
-          <span style="color:var(--warn)">■ über Ziel</span>
+        <div style="font-size:12px; color:var(--ink-light);">
+          <span style="color:var(--warn)">■ über Ziel+200</span>
+          <span style="color:var(--bier); margin-left:12px">■ knapp drüber</span>
         </div>
       </div>
     </div>`;
